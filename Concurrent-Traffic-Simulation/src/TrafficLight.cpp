@@ -44,31 +44,36 @@ TrafficLightPhase TrafficLight::getCurrentPhase()
 
 void TrafficLight::simulate()
 {
+  
     // FP.2b : Finally, the private method „cycleThroughPhases“ should be started in a thread when the public method „simulate“ is called. To do this, use the thread queue in the base class. 
+  
 }
 
 // virtual function which is executed in a thread
 void TrafficLight::cycleThroughPhases()
 {
-	srand((unsigned) time(NULL));
+	srand((unsigned) time(NULL)); //this is in seconds | NULL = seconds
   	int random = 4 + (rand() % (6 - 4 + 1));
-  	double cycles = 2;
+  	//double cycles = 2;
   	
   
   	std::chrono::time_point<std::chrono::system_clock> timePoint = std::chrono::system_clock::now();
   	timePoint;
   	//init stop watch
   	while (true) {
-      	long timeSinceLastUpdate = std::chrono::duration_cast<std::chrono::milliseconds>	(std::chrono::system_clock::now() - timePoint).count(); 
-    	std::this_thread::sleep_for(std::chrono::milliseconds(1));
-      	if (timeSinceLastUpdate >= cycles) {
+      	timePoint;
+      	long timeSinceLastUpdate = std::chrono::duration_cast<std::chrono::seconds>	(std::chrono::system_clock::now() - timePoint).count(); 
+    	std::this_thread::sleep_for(std::chrono::seconds(1));
+      	if (timeSinceLastUpdate >= random && _currentPhase == red) {
         	_currentPhase = green;
+          	_queue.send(std::move(_currentPhase));
         }
-      	else {
+      	else if (timeSinceLastUpdate >= random && _currentPhase == green)
+        {
         	_currentPhase = red;
+          	_queue.send(std::move(_currentPhase));
         }
       timePoint;
-      _queue.send(std::move(_currentPhase));
     }	
   
   
