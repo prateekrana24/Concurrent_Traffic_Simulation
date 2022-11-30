@@ -17,6 +17,8 @@ cstdlib
 -
 thread
 -
+mutex
+-
 
 /home/workspace/Concurrent-Traffic-Simulation/src/TrafficLight.h
 mutex

@@ -3,12 +3,23 @@
 #include "TrafficLight.h"
 #include <cstdlib>
 #include <thread>
+#include <mutex>
 /* Implementation of class "MessageQueue" */
 
 
 template <typename T>
 T MessageQueue<T>::receive()
 {
+  	std::unique_lock<std::mutex> lock(_mute);
+  	con_var.wait(lock, [this] {
+    	return !_queue.empty();
+    });
+    
+    T message = std::move(_queue.back());
+    _queue.pop_back();
+                 
+    return message;
+                 
     // FP.5a : The method receive should use std::unique_lock<std::mutex> and _condition.wait() 
     // to wait for and receive new messages and pull them from the queue using move semantics. 
     // The received object should then be returned by the receive function. 
@@ -18,6 +29,11 @@ T MessageQueue<T>::receive()
 template <typename T>
 void MessageQueue<T>::send(T &&msg)
 {
+  _queue.clear();
+  std::lock_guard<std::mutex> lock(_mute);
+  
+  _queue.emplace_back(std::move(msg));
+  con_var.notify_one();
     // FP.4a : The method send should use the mechanisms std::lock_guard<std::mutex> 
     // as well as _condition.notify_one() to add a new message to the queue and afterwards send a notification.
 } 
@@ -33,6 +49,11 @@ TrafficLight::TrafficLight()
 
 void TrafficLight::waitForGreen()
 {
+  while (true) {
+  	if (_queue.receive() == TrafficLightPhase::green) {
+      _queue.receive();
+    }
+  }
     // FP.5b : add the implementation of the method waitForGreen, in which an infinite while-loop 
     // runs and repeatedly calls the receive function on the message queue. 
     // Once it receives TrafficLightPhase::green, the method returns.
@@ -45,7 +66,7 @@ TrafficLightPhase TrafficLight::getCurrentPhase()
 
 void TrafficLight::simulate()
 {
-  	threads.emplace_back(std::thread(cycleThroughPhases()));
+  	threads.emplace_back(std::thread(&TrafficLight::cycleThroughPhases, this));
     // FP.2b : Finally, the private method „cycleThroughPhases“ should be started in a thread when the public method "simulate" is called. To do this, use the thread queue in the base class. 
   
 }
