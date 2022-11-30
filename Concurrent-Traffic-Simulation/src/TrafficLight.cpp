@@ -11,12 +11,11 @@ template <typename T>
 T MessageQueue<T>::receive()
 {
   	std::unique_lock<std::mutex> lock(_mute);
-  	con_var.wait(lock, [this] {
-    	return !_queue.empty();
+  	con_var.wait(lock, [this] () {
+    	return _queue.empty() == false;
     });
     
     T message = std::move(_queue.back());
-    _queue.pop_back();
                  
     return message;
                  
@@ -29,9 +28,7 @@ T MessageQueue<T>::receive()
 template <typename T>
 void MessageQueue<T>::send(T &&msg)
 {
-  _queue.clear();
   std::lock_guard<std::mutex> lock(_mute);
-  
   _queue.emplace_back(std::move(msg));
   con_var.notify_one();
     // FP.4a : The method send should use the mechanisms std::lock_guard<std::mutex> 
@@ -51,7 +48,7 @@ void TrafficLight::waitForGreen()
 {
   while (true) {
   	if (_queue.receive() == TrafficLightPhase::green) {
-      _queue.receive();
+      return;
     }
   }
     // FP.5b : add the implementation of the method waitForGreen, in which an infinite while-loop 
