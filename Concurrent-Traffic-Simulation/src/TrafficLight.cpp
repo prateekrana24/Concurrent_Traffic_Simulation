@@ -29,6 +29,7 @@ template <typename T>
 void MessageQueue<T>::send(T &&msg)
 {
   std::lock_guard<std::mutex> lock(_mute);
+  _queue.clear();
   _queue.emplace_back(std::move(msg));
   con_var.notify_one();
     // FP.4a : The method send should use the mechanisms std::lock_guard<std::mutex> 
@@ -71,28 +72,32 @@ void TrafficLight::simulate()
 // virtual function which is executed in a thread
 void TrafficLight::cycleThroughPhases()
 {
-	srand((unsigned) time(NULL)); //this is in seconds | NULL = seconds
-  	int random = 4 + (rand() % (6 - 4 + 1));
-  	//double cycles = 2;
-  	
-  
+  	std::random_device rand_device;
+  	std::mt19937 mt(rand_device());
   	std::chrono::time_point<std::chrono::system_clock> timePoint = std::chrono::system_clock::now();
-  	timePoint;
+  
+    std::uniform_int_distribution<int> uni(4000, 6000);
+    double random = uni(mt);
+  	
   	//init stop watch
   	while (true) {
-      	timePoint;
-      	long timeSinceLastUpdate = std::chrono::duration_cast<std::chrono::seconds>	(std::chrono::system_clock::now() - timePoint).count(); 
-    	std::this_thread::sleep_for(std::chrono::seconds(1));
-      	if (timeSinceLastUpdate >= random && _currentPhase == red) {
-        	_currentPhase = green;
-          	_queue.send(std::move(_currentPhase));
-        }
-      	else if (timeSinceLastUpdate >= random && _currentPhase == green)
+      	std::this_thread::sleep_for(std::chrono::milliseconds(1));
+      	long timeSinceLastUpdate = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - timePoint).count(); 
+      
+      	if (timeSinceLastUpdate >= random && _currentPhase == red)
         {
-        	_currentPhase = red;
-          	_queue.send(std::move(_currentPhase));
+          _currentPhase = green;
+          _queue.send(std::move(_currentPhase));
+          timePoint = std::chrono::system_clock::now();
         }
-      timePoint;
+     
+        else if (timeSinceLastUpdate >= random && _currentPhase == green)
+        {
+          _currentPhase = red;
+          _queue.send(std::move(_currentPhase));
+          timePoint = std::chrono::system_clock::now();
+        }
+        
     }	
   
   
